@@ -5,7 +5,9 @@ import sequtils
 import unicode
 import options
 import terminal
-import parseopt
+# import parseopt
+import pkg/cmdos
+import cli_setup
 from icons import Icons
 
 type Entry = (ForegroundColor, string)
@@ -18,22 +20,40 @@ var showMeta      = false        # -m
 var showDirsOnly  = false        # -d
 var showFilesOnly = false        # -f
 
-proc parseCommandLineArgs() =
-  var p = initOptParser(commandLineParams())
+proc parseCommandLineArgs(): bool =
+  result = true
 
-  while true:
-    p.next()
-    case p.kind
-    of cmdEnd: break
-    of cmdShortOption, cmdLongOption:
-      case p.key:
-      of "a": showHidden    = true
-      of "l": showList      = true
-      of "m": showMeta      = true
-      of "d": showDirsOnly  = true
-      of "f": showFilesOnly = true
-    of cmdArgument:
-      directory = p.key
+  if paramCount() > 0:
+    case paramStr(1)
+    of "-h", "--help":
+      echo helpMsg
+      result = false
+    else:
+      var (fg, ag) = processCmd(optCmd, true)
+      echo fg, ag
+      showHidden = getFlag(fg, "--showHidden")
+      showList = getFlag(fg, "--showList")
+      showMeta = getFlag(fg, "--showMeta")
+      directory = getArg(ag, "")[0]
+      result = true
+
+  # NOTE: Old implementation.
+  #
+  # var p = initOptParser(commandLineParams())
+  #
+  # while true:
+  #   p.next()
+  #   case p.kind
+  #   of cmdEnd: break
+  #   of cmdShortOption, cmdLongOption:
+  #     case p.key:
+  #     of "a": showHidden    = true
+  #     of "l": showList      = true
+  #     of "m": showMeta      = true
+  #     of "d": showDirsOnly  = true
+  #     of "f": showFilesOnly = true
+  #   of cmdArgument:
+  #     var xdirectory = p.key
 
 proc isDirectory(path: string): bool =
   return path.dirExists()
@@ -65,7 +85,7 @@ proc processEntry(path: string): Option[Entry] =
   elif path.isDirectory():
     color = fgBlue
     icon = Icons["directories"].getOrDefault(entryParts.name, Icons["other"]["directory"])
-  
+
   if path.isExecutable():
     color = fgGreen
     if icon == Icons["other"]["plainFile"]:
@@ -73,9 +93,7 @@ proc processEntry(path: string): Option[Entry] =
 
   return some((color, "{icon} {entryParts.name}{entryParts.ext}".fmt()))
 
-if isMainModule:
-  parseCommandLineArgs()
-
+proc runApp() =
   if directory == "":
     directory = os.getCurrentDir()
 
@@ -99,3 +117,7 @@ if isMainModule:
         stdout.styledWriteLine(entries[i][0], entries[i][1])
 
     if not showList: echo ""
+
+when isMainModule:
+  if parseCommandLineArgs() == true:
+    runApp()
