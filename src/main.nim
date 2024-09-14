@@ -1,14 +1,7 @@
-import os
-import tables
-import strformat
-import sequtils
-import unicode
-import options
-import terminal
-# import parseopt
+import std/[os,tables, strformat, sequtils, unicode, options, terminal]
 import pkg/cmdos
-import cli_setup
-from icons import Icons
+import cli_setup, icons
+# import parseopt
 
 type Entry = (ForegroundColor, string)
 
